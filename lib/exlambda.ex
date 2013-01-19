@@ -1,0 +1,2 @@
+defmodule ExLambda do
+end

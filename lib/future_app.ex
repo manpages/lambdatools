@@ -13,23 +13,17 @@ defmodule Future.Mon do
   import GenX.GenServer
 
   defcast register(f, pid), export: __MODULE__, state: state do 
-    IO.puts "#{__MODULE__}: registering #{inspect f} on #{inspect pid}"
-    :erlang.put({:future, f}, pid)
+    :erlang.put({:future, f}, {pid, 1})
     {:noreply, state}
   end
 
   defcast unregister(f), export: __MODULE__, state: state do 
-    IO.puts "#{__MODULE__}: unregistering #{inspect f}"
     :erlang.erase({:future, f})
     {:noreply, state}
   end
 
   defcall where_is(f), export: __MODULE__, state: state do 
     {:reply, :erlang.get({:future, f}), state}
-  end
-
-  defcall get_state, export: __MODULE__, state: state do
-    {:reply. state, state}
   end
 
   def start_link do

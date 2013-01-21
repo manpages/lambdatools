@@ -23,7 +23,7 @@ defmodule Future do
     if (state.status == :running) do
       F.subscribe(fpid, :erlang.self)
       receive do
-        {F, state} -> state
+        {F, state} -> state.value
         _ -> get(fpid, timeout)
       after
         timeout -> :timeout

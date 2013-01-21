@@ -1,9 +1,7 @@
 import Xup
 
-defsupervisor Future.Sup, strategy: :one_for_one do
-  worker do 
-    [id: Future.Mon]
-  end
+defsupervisor Future.Sup, strategy: :rest_for_one do
+  worker do: [id: Future.Mon]
 
   supervisor SOFO, strategy: :simple_one_for_one do
     worker do: [id: Future.Srv]
@@ -15,20 +13,19 @@ defmodule Future.Mon do
   import GenX.GenServer
 
   defcast register(f, pid), export: __MODULE__, state: state do 
-    IO.puts "WTF"
+    IO.puts "#{__MODULE__}: registering #{inspect f} on #{inspect pid}"
     :erlang.put({:future, f}, pid)
     {:noreply, state}
   end
 
   defcast unregister(f), export: __MODULE__, state: state do 
-    IO.puts "WAT"
-    :erlang.erase(f)
+    IO.puts "#{__MODULE__}: unregistering #{inspect f}"
+    :erlang.erase({:future, f})
     {:noreply, state}
   end
 
   defcall where_is(f), export: __MODULE__, state: state do 
-    IO.puts "HEY"
-    {:reply, :erlang.get(f), state}
+    {:reply, :erlang.get({:future, f}), state}
   end
 
   defcall get_state, export: __MODULE__, state: state do
@@ -37,10 +34,13 @@ defmodule Future.Mon do
 
   def start_link do
     IO.puts "#{__MODULE__}: Starting monitor"
-    :gen_server.start_link(__MODULE__, nil, [])
+    :gen_server.start_link({:local, __MODULE__}, __MODULE__, nil, [])
   end
 
-  def init(_), do: {:ok, nil}
+  def init(_) do 
+    IO.puts "#{__MODULE__}: Initializing"
+    {:ok, []}
+  end
 end
 
 defmodule Future.App do

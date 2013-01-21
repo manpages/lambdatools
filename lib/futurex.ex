@@ -19,26 +19,22 @@ defmodule Future do
   @spec get(pid, integer) :: F.Ref.t | :timeout
   @doc "Hangs execution to get the future value."
   def get(fpid, timeout // 20) when is_pid(fpid) and is_integer(timeout) do
-    state = peek(fpid)
+    state = F.peek(fpid)
     if (state.status == :running) do
       F.subscribe(fpid, :erlang.self)
       receive do
-        {F, state} -> state.value
+        {{F, fpid}, state} -> state.value
         _ -> get(fpid, timeout)
       after
         timeout -> :timeout
       end
     else
+      F.stop(fpid)
       state.value
     end
   end
   # it produces a warning:
   # def get(arg, arg2), do: :erlang.error("Future.get/2 expected pid, integer got #{inspect arg} #{inspect arg2}")
-
-  @spec peek(pid) :: F.Ref.t
-  @doc "Returns snapshot of the current state of a future."
-  def peek(fpid) when is_pid(fpid), do: F.peek(fpid)
-  def peek(badarg), do: :erlang.error("Future.peek/1 expected pid, got #{inspect badarg}")
 
   defsupervisor Sup, strategy: :simple_one_for_one do
     worker do: [id: Future.Srv]
@@ -94,11 +90,24 @@ defmodule Future do
     end
 
     defcast broadcast, state: state do
-      Enum.each(state.report_to, (&1 <- {__MODULE__, state}))
+      if (state.report_to != :ordsets.new) do
+        Enum.each(state.report_to, (&1 <- {{__MODULE__, :erlang.self}, state}))
+        stop(:erlang.self)
+      end
       {:noreply, state}
     end
 
-    defcall peek, state: state do
+    defcast stop, state: state do
+      :supervisor.terminate_child(Future.Sup, :erlang.self)
+      {:noreply, state}
+    end
+
+    defcall peek, state: state, do: {:reply, state, state}
+
+    defcall get, state: state do
+      if (state.status != :running) do
+        stop(:erlang.self)
+      end
       {:reply, state, state}
     end
   end

@@ -28,6 +28,8 @@ defmodule MockingBird do
     :gen_server.start_link __MODULE__, rid, []
   end
 
-  def init(rid), do: {:ok, State.new(id: rid)}
+  def init(rid), do: (
+    {:ok, State.new(id: rid)}
+  )
 
 end

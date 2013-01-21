@@ -1,7 +1,7 @@
 lambdatools
 ===========
 
-Elixir lambda calculi / computer science tools. Somehow inspired by [this](ihttp://scidok.sulb.uni-saarland.de/volltexte/2004/289/pdf/Schwinghammer-Diplom.pdf)
+Elixir lambda calculi / computer science tools. Somehow inspired by [this](ihttp://scidok.sulb.uni-saarland.de/volltexte/2004/289/pdf/Schwinghammer-Diplom.pdf).
 
 provides
 ===

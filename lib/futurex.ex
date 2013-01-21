@@ -6,6 +6,40 @@ defmodule Future do
   create, peek at and get values from futures.
   """
 
+  alias(Future.Srv, as: F)
+
+  @spec new((() -> any)) :: pid
+  @doc "Creates a new future and return it's pid."
+  def new(f) when is_function(f) do 
+    {:ok, pid} = :supervisor.start_child(Future.Sup, [f])
+    pid
+  end
+  def new(badarg), do: :erlang.error("Future.new/1 expected (() -> any), got #{inspect badarg}")
+
+  @spec get(pid, integer) :: F.Ref.t | :timeout
+  @doc "Hangs execution to get the future value."
+  def get(fpid, timeout // 20) when is_pid(fpid) and is_integer(timeout) do
+    state = peek(fpid)
+    if (state.status == :running) do
+      F.subscribe(fpid, :erlang.self)
+      receive do
+        {F, state} -> state
+        _ -> get(fpid, timeout)
+      after
+        timeout -> :timeout
+      end
+    else
+      state.value
+    end
+  end
+  # it produces a warning:
+  # def get(arg, arg2), do: :erlang.error("Future.get/2 expected pid, integer got #{inspect arg} #{inspect arg2}")
+
+  @spec peek(pid) :: F.Ref.t
+  @doc "Returns snapshot of the current state of a future."
+  def peek(fpid) when is_pid(fpid), do: F.peek(fpid)
+  def peek(badarg), do: :erlang.error("Future.peek/1 expected pid, got #{inspect badarg}")
+
   defsupervisor Sup, strategy: :simple_one_for_one do
     worker do: [id: Future.Srv]
   end
@@ -20,29 +54,31 @@ defmodule Future do
 
     defrecord Ref, 
       pid: nil,
-      status: :undefined,
+      status: :running,
       value: :undefined,
       report_to: :ordsets.new do record_type(
           pid: nil | pid, 
-          status: :undefined | :running | :value | :error | :exception, 
+          status: :running | :value | :error | :exception, 
           value: any,
           report_to: [pid | atom | {atom, pid}]
         )
       end
 
-    #@spec start_link(() -> any) :: {:ok, pid}
+    @spec start_link((() -> any)) :: {:ok, pid}
     def start_link(f), do: :gen_server.start_link(__MODULE__, f, [])
 
+    @spec init((() -> any)) :: {:ok, pid}
     def init(f) do 
       new(:erlang.self, f)
       {:ok, Ref.new.pid(:erlang.self)}
     end
 
     defcast new(f), state: state do
+      self = :erlang.self
       :erlang.spawn_link(fn() ->
         y = f.()
-        store(:erlang.self, y)
-        broadcast(:erlang.self)
+        store(self, y)
+        broadcast(self)
       end)
       {:noreply, state.status(:running)}
     end
@@ -58,10 +94,13 @@ defmodule Future do
     end
 
     defcast broadcast, state: state do
-      Enum.each(state.report_to, (&1 <- state))
+      Enum.each(state.report_to, (&1 <- {__MODULE__, state}))
       {:noreply, state}
     end
 
+    defcall peek, state: state do
+      {:reply, state, state}
+    end
   end
   
 end

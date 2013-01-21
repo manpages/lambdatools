@@ -69,4 +69,3 @@ defmodule Future.Srv do
     {:reply, state, state}
   end
 end
-

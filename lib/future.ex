@@ -9,7 +9,7 @@ defmodule Future do
   alias(Future.Srv, as: F)
 
   @spec new((() -> any)) :: pid
-  @doc "Creates a new future and return its pid."
+  @doc "Creates a new future and returns its pid."
   def new(f) when is_function(f) do 
     {:ok, pid} = :supervisor.start_child(Sup, [f])
     Mon.add_consumer(f, pid)

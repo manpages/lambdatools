@@ -1,8 +1,4 @@
-import Xup
-
-defsupervisor Future.Sup, strategy: :one_for_one do
-  worker do: [id: MockingBird]
-end
+#  worker do: [id: MockingBird]
 
 defmodule Future.App do
   use Application.Behaviour

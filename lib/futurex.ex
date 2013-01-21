@@ -6,38 +6,48 @@ defmodule Future do
   create, peek at and get values from futures.
   """
 
+  alias(Future.Sup.SOFO, as: Sup)
+  alias(Future.Mon, as: Mon)
   alias(Future.Srv, as: F)
 
   @spec new((() -> any)) :: pid
   @doc "Creates a new future and return it's pid."
   def new(f) when is_function(f) do 
-    {:ok, pid} = :supervisor.start_child(Future.Sup, [f])
-    pid
+    {:ok, pid} = :supervisor.start_child(Sup, [f])
+    Mon.register(f, pid)
+    {:future, f}
   end
   def new(badarg), do: :erlang.error("Future.new/1 expected (() -> any), got #{inspect badarg}")
 
-  @spec get(pid, integer) :: F.Ref.t | :timeout
+  @spec get((() -> any), integer) :: any
   @doc "Hangs execution to get the future value."
-  def get(fpid, timeout // 20) when is_pid(fpid) and is_integer(timeout) do
+  def get(f, timeout // 20) when is_function(f) and is_integer(timeout) do
+    fpid = Mon.where_is(f)
     state = F.peek(fpid)
     if (state.status == :running) do
-      F.subscribe(fpid, :erlang.self)
-      receive do
-        {{F, fpid}, state} -> state.value
-        _ -> get(fpid, timeout)
-      after
-        timeout -> :timeout
-      end
+      get_receive(fpid, timeout, state)
     else
-      F.stop(fpid)
-      state.value
+      get_return(fpid, state)
     end
   end
   # it produces a warning:
   # def get(arg, arg2), do: :erlang.error("Future.get/2 expected pid, integer got #{inspect arg} #{inspect arg2}")
 
-  defsupervisor Sup, strategy: :simple_one_for_one do
-    worker do: [id: Future.Srv]
+  @spec get_return(pid, F.Ref.t) :: any
+  defp get_return(fpid, state) do
+    F.stop(fpid)
+    state.value
+  end
+
+  @spec get_receive(pid, integer, F.Ref.t) :: any
+  defp get_receive(fpid, timeout, state) do
+    F.subscribe(fpid, :erlang.self)
+    receive do
+      {{F, fpid}, state} -> state.value
+      _ -> get(fpid, timeout)
+    after
+      timeout -> :timeout
+    end
   end
 
   defmodule Srv do

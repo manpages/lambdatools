@@ -4,6 +4,8 @@ defmodule Future do
   create, peek at and get values from futures.
   """
 
+  @timeout 2000
+
   alias(Future.Sup.SOFO, as: Sup)
   alias(Future.Mon, as: Mon)
   alias(Future.Srv, as: F)
@@ -19,23 +21,29 @@ defmodule Future do
 
   @spec get((() -> any), integer) :: any
   @doc "Hangs execution to get the future value."
-  def get(f, timeout // 20) when is_function(f) and is_integer(timeout) do
+  def get(f, timeout // @timeout) when is_function(f) and is_integer(timeout) do
     state = Mon.state_of(f)
-    if (state.status == :running) do
-      get_receive(f, timeout, state)
+    if (state != :undefined) do
+      if (state.status == :running) do
+        get_receive_maybe(f, timeout, state)
+      else
+        get_return_maybe(f, state)
+      end
     else
-      get_return(f, state)
+      :noproc
     end
   end
 
-  @spec get_return((() -> any), F.Ref.t) :: any
-  defp get_return(f, state) do
+  @spec get_return_maybe((() -> any), F.Ref.t | :undefined) :: any
+  defp get_return_maybe(_, :undefined), do: :undefined
+  defp get_return_maybe(f, state) do
     Mon.del_consumer(f)
     state.value
   end
 
-  @spec get_receive((() -> any), integer, F.Ref.t) :: any
-  defp get_receive(f, timeout, state) do
+  @spec get_receive_maybe((() -> any), integer, F.Ref.t | :undefined) :: any
+  defp get_receive_maybe(_, _, :undefined), do: :undefined
+  defp get_receive_maybe(f, timeout, state) do
     Mon.subscribe(f, :erlang.self)
     fpid = Mon.where_is(f)
     receive do

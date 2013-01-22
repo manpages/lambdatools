@@ -20,7 +20,6 @@ defmodule Future.Mon do
 
   #@doc "Deletes consumer of future and stops future server if there are no consumers left"
   defcast del_consumer(f), export: __MODULE__ do
-    IO.puts "#{inspect get!({:future, f})} while whereis says #{inspect where_is!(f)}"
     case(get!({:future, f})) do
       :undefined -> :noproc # error maybe? that's a bad sign!
       {fpid, ref_count} -> del_consumer!(f, fpid, ref_count)
@@ -42,7 +41,9 @@ defmodule Future.Mon do
 
   #@doc "Returns actual state of f"
   defcall state_of(f), export: __MODULE__ do
-    {:reply, F.peek(where_is!(f)), []}
+    return = where_is!(f)
+    return = if (return == :undefined), do: return, else: F.peek(return)
+    {:reply, return, []}
   end
 
   #private
@@ -54,15 +55,15 @@ defmodule Future.Mon do
   defp erase!(x), do: :erlang.erase(x)
   @spec where_is!((() -> any)) :: :undefined | pid
   defp where_is!(f) do 
-    {pid, _} = :erlang.get({:future, f})
-    pid
+    case (:erlang.get({:future, f})) do
+      {pid, _} -> pid
+      other -> other
+    end
   end
   defp del_consumer!(f, fpid, ref_count) do
     if ((ref_count-1) > 0) do
-      IO.puts "count--"
       put!({:future, f}, {fpid, ref_count-1})
     else
-      IO.puts "Boom"
       F.stop(fpid)
       erase!({:future, f})
     end

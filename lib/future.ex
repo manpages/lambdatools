@@ -37,8 +37,9 @@ defmodule Future do
   @spec get_receive((() -> any), integer, F.Ref.t) :: any
   defp get_receive(f, timeout, state) do
     Mon.subscribe(f, :erlang.self)
+    fpid = Mon.where_is(f)
     receive do
-      {{F, Mon.where_is(f)}, state} -> (
+      {{F, fpid}, state} -> (
         Mon.del_consumer(f)
         state.value
       )

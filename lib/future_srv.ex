@@ -43,14 +43,13 @@ defmodule Future.Srv do
     )}
   end
 
-  defcast store(value), state: state do
-    {:noreply, state.value(value).status(:value)}
+  defcall store(value), state: state do
+    {:reply, :ok, state.value(value).status(:value)}
   end
 
   defcast broadcast, state: state do
     if (state.report_to != :ordsets.new) do
       Enum.each(state.report_to, (&1 <- {{__MODULE__, :erlang.self}, state}))
-      stop(:erlang.self)
     end
     {:noreply, state}
   end
@@ -61,11 +60,4 @@ defmodule Future.Srv do
   end
 
   defcall peek, state: state, do: {:reply, state, state}
-
-  defcall get, state: state do
-    if (state.status != :running) do
-      stop(:erlang.self)
-    end
-    {:reply, state, state}
-  end
 end

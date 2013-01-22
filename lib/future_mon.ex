@@ -40,7 +40,7 @@ defmodule Future.Mon do
     {:reply, where_is!(f), []}
   end
 
-  @doc "Returns actual state of f"
+  #@doc "Returns actual state of f"
   defcall state_of(f), export: __MODULE__ do
     {:reply, F.peek(where_is!(f)), []}
   end

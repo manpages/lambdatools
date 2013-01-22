@@ -65,7 +65,7 @@ defmodule Future.Mon do
       put!({:future, f}, {fpid, ref_count-1})
     else
       IO.puts "Down goes Brown"
-      F.stop(fpid)
+      F.halt(fpid)
       erase!({:future, f})
     end
   end
@@ -78,4 +78,6 @@ defmodule Future.Mon do
   def init(_) do 
     {:ok, []}
   end
+
+  def terminate(_shutdown, state), do: :ok
 end

@@ -25,7 +25,6 @@ defmodule Future.Srv do
 
   @spec init((() -> any)) :: {:ok, pid}
   def init(f) do 
-    IO.puts "Starting #{inspect :erlang.self}"
     new(:erlang.self, f)
     {:ok, Ref.new.pid(:erlang.self)}
   end
@@ -60,7 +59,6 @@ defmodule Future.Srv do
   end
 
   defcast halt, state: state do
-    IO.puts "Halting #{inspect :erlang.self}"
     :supervisor.terminate_child(Future.Sup.SOFO, :erlang.self)
     {:noreply, state}
   end

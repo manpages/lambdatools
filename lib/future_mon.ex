@@ -64,6 +64,7 @@ defmodule Future.Mon do
     if ((ref_count-1) > 0) do
       put!({:future, f}, {fpid, ref_count-1})
     else
+      IO.puts "Down goes Brown"
       F.stop(fpid)
       erase!({:future, f})
     end

@@ -19,7 +19,10 @@ defmodule Future.Srv do
     end
 
   @spec start_link((() -> any)) :: {:ok, pid}
-  def start_link(f), do: :gen_server.start_link(__MODULE__, f, [])
+  def start_link(f) do 
+    IO.puts "Starting #{inspect :erlang.self}"
+    :gen_server.start_link(__MODULE__, f, [])
+  end
 
   @spec init((() -> any)) :: {:ok, pid}
   def init(f) do 
@@ -55,6 +58,7 @@ defmodule Future.Srv do
   end
 
   defcast stop, state: state do
+    IO.puts "Stopping #{inspect :erlang.self}"
     :supervisor.terminate_child(Future.Sup, :erlang.self)
     {:noreply, state}
   end

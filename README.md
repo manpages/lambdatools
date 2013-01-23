@@ -35,13 +35,18 @@ Please note that for one new/1 you MUST make one and only one call to get/1
 because at the moment, the only way to remove unneeded futures from the system
 is to count "references" incremented when a future gets constructed with new/1
 and decremented when a future successfully returns its value due to get/1.
-Thus, iex(1) and iex(2) was a legit use case (we have timeouted from the get/1,
+Thus, iex(1) and iex(2) were legit use case (we have timeouted from the get/1,
 thus we can retry), while iex(3) attempt could have broken expectations of 
 another consumer of the same function executed in a future.
-Please note that for one function reference only one future gets constructed.
+
+Please also note that for one function reference only one future gets constructed.
 Thus please, pass pure functions in the future for your own goodness.
+
 Future implementation in lambdatools are completely OTP-based and should match
-your favorite fault-tolerance model with smallest tweaks.
+your favorite fault-tolerance model with smallest tweaks. I currently am working 
+on a flexible fault tolerance system.
+
+Ideas are welcome.
 
 TODO:
  - wrappers to control lifespan of the Futures, 

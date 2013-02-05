@@ -78,5 +78,5 @@ defmodule Future.Mon do
     {:ok, []}
   end
 
-  def terminate(_shutdown, state), do: :ok
+  def terminate(_shutdown, _state), do: :ok
 end

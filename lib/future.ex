@@ -47,7 +47,7 @@ defmodule Future do
     Mon.subscribe(f, :erlang.self)
     fpid = Mon.where_is(f)
     receive do
-      {{F, fpid}, state} -> (
+      {{F, ^fpid}, state} -> (
         Mon.del_consumer(f)
         state.value
       )
